@@ -1,62 +1,87 @@
 pipeline {
     agent none 
+    
+    triggers {
+    
+        cron('H H * * *')
+    }
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+    }
 
     stages {
-        stage('Checkout & Info') {
+        stage('Checkout') {
+            agent { label 'cpp' }
+            steps {
+                checkout scm
+                echo "--- Código obtido no nó: ${env.NODE_NAME} ---"
+            }
+        }
+
+        stage('Build (Compile)') {
             agent { label 'cpp' }
             steps {
                 script {
-                    echo "--- Repositório Detectado ---"
-                    sh 'ls -la' 
+                    sh 'rm -rf build && mkdir build'
+                    
+                    dir('build') {
+                        echo "--- Configurando CMake ---"
+                        sh 'cmake ..'
+                        
+                        echo "--- Compilando C++17 ---"
+                        sh 'make'
+                    }
+                    
+                    stash name: 'binarios-compilados', includes: 'build/calculator, build/run_tests'
                 }
             }
         }
 
-        stage('Build System Generation') {
+        stage('Quality Gate (Unit Tests)') {
             agent { label 'cpp' }
             steps {
                 script {
-                    echo "--- Limpando builds antigos ---"
-                    sh 'rm -rf build'
-                    sh 'mkdir build'
+                    echo "--- Preparando Ambiente de Teste ---"
+                    sh 'rm -rf build && mkdir build'
+                    
+                    unstash 'binarios-compilados'
                     
                     dir('build') {
-                        echo "--- Gerando Makefiles (CMake) ---"
-                        sh 'cmake ..' 
+                        echo "--- Executando Testes Unitários ---"
+
+                        sh 'chmod +x run_tests'
+                        
+                        sh './run_tests'
                     }
                 }
             }
         }
 
-        stage('Compilation') {
+        stage('Release (Archive Artifacts)') {
             agent { label 'cpp' }
             steps {
-                dir('build') {
-                    echo "--- Compilando Projeto e Testes ---"
-                    sh 'cmake --build .'
-                }
-            }
-        }
+                script {
 
-        stage('Unit Tests') {
-            agent { label 'cpp' }
-            steps {
-                dir('build') {
-                    echo "--- Executando Quality Gate ---"
-                    sh './run_tests'
+                    unstash 'binarios-compilados'
                     
+                    dir('build') {
+                        echo "--- Arquivando Binário Final ---"
+
+                        archiveArtifacts artifacts: 'calculator', fingerprint: true
+                    }
                 }
             }
         }
     }
 
     post {
-        success {
-            echo '>>> SUCESSO: Pipeline Executado!'
-            archiveArtifacts artifacts: 'build/calculator', fingerprint: true
-        }
         failure {
-            echo '>>> ERRO: Verifique o Console Output.'
+            echo '>>> CRÍTICO: O Pipeline falhou. Verifique os logs.'
+        }
+        success {
+            echo '>>> SUCESSO: Build Diário Concluído.'
         }
     }
 }
