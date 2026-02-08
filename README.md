@@ -94,9 +94,9 @@ Durante a fase de testes de carga da topologia completa, foi identificado um gar
 
 Para mitigar este risco e adequar a solução à capacidade do servidor, foram aplicadas as seguintes correções de engenharia:
 
-1.  **Swap de Contenção:** Implementação de memória virtual em disco para estabilidade do SO.
-2.  **Resource Quotas:** Aplicação de limites rígidos (Hard Limits) no Docker para impedir o travamento do Host.
-3.  **JVM Tuning:** Configuração de Heap Size explicito nos arquivos de infraestrutura.
+* **Swap de Contenção:** Implementação de memória virtual em disco para estabilidade do SO.
+* **Resource Quotas:** Aplicação de limites rígidos (Hard Limits) no Docker para impedir o travamento do Host.
+* **JVM Tuning:** Configuração de Heap Size explicito nos arquivos de infraestrutura.
 
 1. Swap de Contenção
 Implementação de memória virtual em disco para estabilidade do SO.
@@ -146,7 +146,7 @@ O repositório original fornecido continha apenas um arquivo vazio (calculator).
 1. CMakeLists.txt: Configuração de build definindo CMAKE_CXX_STANDARD 17.
 2. src/main.cpp: Implementação de exemplo da calculadora.
 3. tests/test_calc.cpp: Teste unitário simples para validação do Quality Gate no Jenkins.
-4. VERSION: Arquivo de controle de versão semântica.
+4. VERSION: Arquivo de controle de versão.
 
 ## Melhorias Futuras e Roadmap
 
