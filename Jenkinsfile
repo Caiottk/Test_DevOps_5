@@ -16,7 +16,15 @@ pipeline {
             agent { label 'cpp' }
             steps {
                 checkout scm
-                echo "--- Código obtido no nó: ${env.NODE_NAME} ---"
+
+                def versionFromFile = readFile('VERSION').trim()
+
+                env.APP_VERSION = versionFromFile
+
+                echo "============================================="
+                echo "VERSÃO DEFINIDA: ${env.APP_VERSION}"
+                echo "COMMIT HASH: ${env.GIT_COMMIT}"
+                echo "============================================="
             }
         }
 
@@ -27,14 +35,11 @@ pipeline {
                     sh 'rm -rf build && mkdir build'
                     
                     dir('build') {
-                        echo "--- Configurando CMake ---"
                         sh 'cmake ..'
-                        
-                        echo "--- Compilando C++17 ---"
                         sh 'make'
                     }
                     
-                    stash name: 'binarios-compilados', includes: 'build/calculator, build/run_tests'
+                    stash name: 'binario-raw', includes: 'build/calculator, build/run_tests'                
                 }
             }
         }
@@ -43,14 +48,11 @@ pipeline {
             agent { label 'cpp' }
             steps {
                 script {
-                    echo "--- Preparando Ambiente de Teste ---"
                     sh 'rm -rf build && mkdir build'
                     
-                    unstash 'binarios-compilados'
+                    unstash 'binario-raw'
                     
                     dir('build') {
-                        echo "--- Executando Testes Unitários ---"
-
                         sh 'chmod +x run_tests'
                         
                         sh './run_tests'
@@ -59,17 +61,21 @@ pipeline {
             }
         }
 
-        stage('Release (Archive Artifacts)') {
+        stage('Release & Versioning') {
             agent { label 'cpp' }
             steps {
                 script {
 
-                    unstash 'binarios-compilados'
+                    unstash 'binario-raw'
                     
                     dir('build') {
-                        echo "--- Arquivando Binário Final ---"
+                        def shortCommit = env.GIT_COMMIT.take(7)
+                        def buildNum = env.BUILD_NUMBER
+                        def finalName = "calculator-v${env.APP_VERSION}-b${buildNum}-${shortCommit}"
 
-                        archiveArtifacts artifacts: 'calculator', fingerprint: true
+                        sh "mv calculator ${finalName}"
+
+                        archiveArtifacts artifacts: finalName, fingerprint: true
                     }
                 }
             }
@@ -77,11 +83,18 @@ pipeline {
     }
 
     post {
+        always {
+            echo '--- Limpando Workspace para economizar disco ---'
+            cleanWs() 
+        }
+
         failure {
             echo '>>> CRÍTICO: O Pipeline falhou. Verifique os logs.'
         }
+
         success {
-            echo '>>> SUCESSO: Build Diário Concluído.'
+            echo ">>> SUCESSO: Pipeline da Versão ${env.APP_VERSION} finalizado."
+            echo ">>> Artefato disponível para download na interface."
         }
     }
 }
