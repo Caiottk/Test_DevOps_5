@@ -2,31 +2,49 @@ pipeline {
     agent none 
 
     stages {
-        stage('Build & Test') {
+        stage('Checkout & Info') {
             agent { label 'cpp' }
-            
             steps {
                 script {
-                    echo "--- Iniciando Pipeline C++17 no Agente: ${env.NODE_NAME} ---"
-                    
-                    sh 'rm -rf build && mkdir build'
+                    echo "--- Repositório Detectado ---"
+                    sh 'ls -la' 
+                }
+            }
+        }
+
+        stage('Build System Generation') {
+            agent { label 'cpp' }
+            steps {
+                script {
+                    echo "--- Limpando builds antigos ---"
+                    sh 'rm -rf build'
+                    sh 'mkdir build'
                     
                     dir('build') {
-                        sh 'cmake ..'
-                        
-                        echo "--- Compilando Binários ---"
-                        sh 'make'
+                        echo "--- Gerando Makefiles (CMake) ---"
+                        sh 'cmake ..' 
                     }
                 }
             }
         }
 
-        stage('Quality Gate: Unit Tests') {
+        stage('Compilation') {
             agent { label 'cpp' }
             steps {
                 dir('build') {
-                    echo "--- Executando Testes Unitários ---"
+                    echo "--- Compilando Projeto e Testes ---"
+                    sh 'cmake --build .'
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            agent { label 'cpp' }
+            steps {
+                dir('build') {
+                    echo "--- Executando Quality Gate ---"
                     sh './run_tests'
+                    
                 }
             }
         }
@@ -34,16 +52,11 @@ pipeline {
 
     post {
         success {
-            echo '>>> SUCESSO: O código C++17 compilou e passou nos testes!'
-
-            node('cpp') {
-                dir('build') {
-                    archiveArtifacts artifacts: 'calculator', fingerprint: true
-                }
-            }
+            echo '>>> SUCESSO: Pipeline Executado!'
+            archiveArtifacts artifacts: 'build/calculator', fingerprint: true
         }
         failure {
-            echo '>>> FALHA: Verifique os logs de compilação ou teste.'
+            echo '>>> ERRO: Verifique o Console Output.'
         }
     }
 }
