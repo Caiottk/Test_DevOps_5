@@ -1,0 +1,61 @@
+services:
+
+  jenkins-controller:
+    image: jenkins/jenkins:2.485-jdk21
+    container_name: jenkins_controller
+    restart: unless-stopped
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080" # web
+      - "50000:50000" # jnlp
+    environment:
+      - JAVA_OPTS=-Xmx512m -Xms256m -Djava.awt.headless=true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins-net
+
+  jenkins-agent-1:
+    build: .
+    container_name: agent_1
+    restart: always
+    ports:
+      - "2221:22" # 22 container -> 2221 host
+    environment:
+      - JAVA_TOOL_OPTIONS="-Xmx256m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    networks:
+      - jenkins-net
+
+  jenkins-agent-2:
+    build: .
+    container_name: agent_2
+    restart: always
+    ports:
+      - "2222:22" # 22 container -> 2222 host
+    environment:
+      - JAVA_TOOL_OPTIONS="-Xmx256m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    networks:
+      - jenkins-net
+
+networks:
+  jenkins-net:
+    driver: bridge
+
+volumes:
+  jenkins_home:
