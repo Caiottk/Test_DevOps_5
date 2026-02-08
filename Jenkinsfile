@@ -15,18 +15,18 @@ pipeline {
         stage('Checkout') {
             agent { label 'cpp' }
             steps {
-                script {
-                    checkout scm
+            	script {
+			checkout scm
 
-                    def versionFromFile = readFile('VERSION').trim()
+			def versionFromFile = readFile('VERSION').trim()
 
-                    env.APP_VERSION = versionFromFile
+			env.APP_VERSION = versionFromFile
 
-                    echo "============================================="
-                    echo "VERSÃO DEFINIDA: ${env.APP_VERSION}"
-                    echo "COMMIT HASH: ${env.GIT_COMMIT}"
-                    echo "============================================="
-                }
+			echo "============================================="
+			echo "VERSÃO DEFINIDA: ${env.APP_VERSION}"
+			echo "COMMIT HASH: ${env.GIT_COMMIT}"
+			echo "============================================="
+		}
             }
         }
 
@@ -44,6 +44,14 @@ pipeline {
                     stash name: 'binario-raw', includes: 'build/calculator, build/run_tests'                
                 }
             }
+            post{
+                success {
+                    script {
+                        echo " Limpando workspace... "
+                        cleanWs()
+                    }
+                }
+            }
         }
 
         stage('Quality Gate (Unit Tests)') {
@@ -58,6 +66,14 @@ pipeline {
                         sh 'chmod +x run_tests'
                         
                         sh './run_tests'
+                    }
+                }
+            }
+            post{
+                success {
+                    script {
+                        echo " Limpando workspace... "
+                        cleanWs()
                     }
                 }
             }
@@ -81,15 +97,18 @@ pipeline {
                     }
                 }
             }
+            post{
+                success {
+                    script {
+                        echo " Limpando workspace... "
+                        cleanWs()
+                    }
+                }
+            }
         }
     }
 
     post {
-        always {
-            echo '--- Limpando Workspace para economizar disco ---'
-            cleanWs() 
-        }
-
         failure {
             echo '>>> CRÍTICO: O Pipeline falhou. Verifique os logs.'
         }
