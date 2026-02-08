@@ -15,16 +15,18 @@ pipeline {
         stage('Checkout') {
             agent { label 'cpp' }
             steps {
-                checkout scm
+                script {
+                    checkout scm
 
-                def versionFromFile = readFile('VERSION').trim()
+                    def versionFromFile = readFile('VERSION').trim()
 
-                env.APP_VERSION = versionFromFile
+                    env.APP_VERSION = versionFromFile
 
-                echo "============================================="
-                echo "VERSÃO DEFINIDA: ${env.APP_VERSION}"
-                echo "COMMIT HASH: ${env.GIT_COMMIT}"
-                echo "============================================="
+                    echo "============================================="
+                    echo "VERSÃO DEFINIDA: ${env.APP_VERSION}"
+                    echo "COMMIT HASH: ${env.GIT_COMMIT}"
+                    echo "============================================="
+                }
             }
         }
 
