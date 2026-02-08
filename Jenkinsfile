@@ -62,6 +62,8 @@ pipeline {
                     
                     unstash 'binario-raw'
                     
+                    // sh 'cppcheck src/ --enable=all --error-exitcode=0 || echo "CppCheck não instalado, pulando..."'
+
                     dir('build') {
                         sh 'chmod +x run_tests'
                         
